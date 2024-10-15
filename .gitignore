@@ -1,0 +1,15 @@
+# Ignore Eclipse project files
+.classpath
+.settings/
+.project
+
+# Ignore Maven wrapper files
+mvnw
+mvnw.cmd
+
+# Ignore other files
+HELP.md
+
+# Ignore build directories
+target/
+.mvn/

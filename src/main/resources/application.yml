@@ -1,0 +1,16 @@
+spring:
+ application:
+  name : microservices
+
+aws:
+ region: ap-southeast-2
+ s3:
+  bucketName : my-api-testing
+  credentials:
+   access-key-id: use_your_access_key
+   secret-access-key: use_your_secret_key
+   
+  bucketName1 : my-api-testing1
+  bucketName2 : my-api-testing2
+
+
