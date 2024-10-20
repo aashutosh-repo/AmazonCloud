@@ -6,13 +6,12 @@ import java.util.List;
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.test.microservices.config.S3BucketConfig;
 import com.test.microservices.entity.Notifications;
-import com.test.microservices.mapper.NotificationMapper;
+import com.test.microservices.mapper.ObjectsMapper;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -27,7 +26,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 @Service
 public class S3MErcury {
     private final S3Client s3Client;
-    private final NotificationMapper notificationMapper;
+    private final ObjectsMapper notificationMapper;
     
     @Autowired
     private S3BucketConfig s3BucketConfig;
@@ -35,7 +34,7 @@ public class S3MErcury {
 //    @Value("${mercury.s3.bucket-name}")
     private String bucketName;
 
-    public S3MErcury(S3Client s3Client, NotificationMapper notificationMapper) {
+    public S3MErcury(S3Client s3Client, ObjectsMapper notificationMapper) {
         this.s3Client = s3Client;
         this.notificationMapper = notificationMapper;
     }

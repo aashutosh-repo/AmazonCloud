@@ -11,9 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.test.microservices.dto.AllNotifications;
 import com.test.microservices.entity.Notifications;
-import com.test.microservices.mapper.NotificationMapper;
+import com.test.microservices.mapper.ObjectsMapper;
 
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -26,12 +25,12 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 @Service
 public class NotificationServiceImpl {
     private final S3AsyncClient s3AsyncClient;
-    private final NotificationMapper notificationMapper;
+    private final ObjectsMapper notificationMapper;
 
     @Value("${aws.s3.bucketName}")
     private String bucketName;
 
-    public NotificationServiceImpl(S3AsyncClient s3AsyncClient, NotificationMapper notificationMapper) {
+    public NotificationServiceImpl(S3AsyncClient s3AsyncClient, ObjectsMapper notificationMapper) {
         this.s3AsyncClient = s3AsyncClient;
         this.notificationMapper = notificationMapper;
     }
