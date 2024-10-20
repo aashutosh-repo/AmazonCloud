@@ -25,7 +25,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 @Service
 public class NotificationServiceImpl {
     private final S3AsyncClient s3AsyncClient;
-    private final ObjectsMapper notificationMapper;
+    private final ObjectsMapper<Notifications> notificationMapper;
 
     @Value("${aws.s3.bucketName}")
     private String bucketName;
@@ -78,7 +78,7 @@ public CompletableFuture<List<Notifications>> getAllNotificationsAsync() {
                                     String json = response.asUtf8String();
                                     try {
                                         // Deserialize JSON to Notifications object
-                                        return notificationMapper.fromJson(json);
+                                        return notificationMapper.fromJson(json, Notifications.class);
                                     } catch (JsonProcessingException e) {
                                         // Handle JSON parsing exception
                                         throw new RuntimeException("Failed to parse JSON", e);

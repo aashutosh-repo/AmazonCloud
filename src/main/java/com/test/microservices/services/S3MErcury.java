@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 @Service
 public class S3MErcury {
     private final S3Client s3Client;
-    private final ObjectsMapper notificationMapper;
+    private final ObjectsMapper<Notifications> notificationMapper;
     
     @Autowired
     private S3BucketConfig s3BucketConfig;
@@ -61,7 +61,7 @@ public class S3MErcury {
                     .key(key)
                     .build()).asUtf8String();
             
-            Notifications notification = notificationMapper.fromJson(json);
+            Notifications notification = notificationMapper.fromJson(json, Notifications.class);
             if (notification.getIsActive() == 1) {
                 activeNotifications.add(notification);
             }

@@ -29,7 +29,7 @@ public class NotificationService{
 	private static final Logger logger = LogManager.getLogger(NotificationService.class);
 
     private final S3Client s3Client;
-    private final ObjectsMapper notificationMapper;
+    private final ObjectsMapper<Notifications> notificationMapper;
 
     private String bucketName;
 	
@@ -64,7 +64,7 @@ public class NotificationService{
             for (String key : keys) {
                 String json = s3Client.getObjectAsBytes(GetObjectRequest.builder().bucket(bucketName).key(key).build())
                         .asUtf8String();
-                Notifications notification = notificationMapper.fromJson(json);
+                Notifications notification = notificationMapper.fromJson(json, Notifications.class);
                 if (notification.getIsActive()==1) {
                     activeNotifications.add(notification);
                 }
@@ -104,7 +104,7 @@ public class NotificationService{
                                                                  .key(key)
                                                                  .build())
                               .asUtf8String();
-        Notifications notification = notificationMapper.fromJson(json);
+        Notifications notification = notificationMapper.fromJson(json, Notifications.class);
 
         // Update the notification status
         notification.setIsActive(isActive);
@@ -129,7 +129,7 @@ public class NotificationService{
                                                                          .key(key)
                                                                          .build())
                                       .asUtf8String();
-                Notifications notification = notificationMapper.fromJson(json);
+                Notifications notification = notificationMapper.fromJson(json, Notifications.class);
 
                 // Update the notification status
                 notification.setIsActive(notificationId.getActivate());

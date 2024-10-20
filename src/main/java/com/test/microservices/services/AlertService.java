@@ -33,12 +33,12 @@ public class AlertService implements AlertStore{
 	@Override
 	public List<Notifications> getActiveNotifications() throws JsonProcessingException {
         List<Notifications> activeNotifications = new ArrayList<>();
-        ObjectsMapper mapper = new ObjectsMapper();
+        ObjectsMapper<Notifications> mapper = new ObjectsMapper<Notifications>();
             List<String> keys = listNotificationKeys();
             for (String key : keys) {
                 String json = client.getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(key).build())
                         .asUtf8String();
-                Notifications notification = mapper.fromJson(json);
+                Notifications notification = mapper.fromJson(json, Notifications.class);
                 if (notification.getIsActive()==1) {
                     activeNotifications.add(notification);
                 }

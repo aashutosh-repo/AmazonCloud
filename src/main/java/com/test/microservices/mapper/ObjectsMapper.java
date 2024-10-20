@@ -6,16 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.microservices.entity.Notifications;
 
 @Component
-public class ObjectsMapper {
+public class ObjectsMapper<T>  {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public String toJson(Notifications notification) throws JsonProcessingException {
-    	objectMapper.findAndRegisterModules();
-        return objectMapper.writeValueAsString(notification);
+    public String toJson(T object) throws JsonProcessingException {
+        objectMapper.findAndRegisterModules();
+        return objectMapper.writeValueAsString(object);
     }
 
-    public Notifications fromJson(String json) throws JsonProcessingException {
-    	objectMapper.findAndRegisterModules();
-        return objectMapper.readValue(json, Notifications.class);
+    public T fromJson(String json, Class<T> clazz) throws JsonProcessingException {
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(json, clazz);
     }
 }
