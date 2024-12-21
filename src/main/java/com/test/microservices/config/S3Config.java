@@ -128,5 +128,38 @@ public class S3Config{
                 .build();
 		}
 	}
+    
+    @Configuration
+    @Profile("test")
+    static class S3testConfig {
+
+		@Value("${aws.region.prod}")
+		private String region;
+
+		@Value("${aws.s3.credentials.access-key-id.prod}")
+		private String accessKeyId;
+
+		@Value("${aws.s3.credentials.secret-access-key.prod}")
+		private String secretAccessKey;
+
+		@Bean(name = "d3Client")
+		public S3Client s3Client() {
+			AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
+			return S3Client.builder()
+                       .region(Region.of(region))
+                       .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
+                       .build();
+		}
+		
+
+		@Bean(name = "s3AsyncClient")
+		public S3AsyncClient s3AsyncClient() {
+			AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
+			return S3AsyncClient.builder()
+                .region(Region.of(region))
+                .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
+                .build();
+		}
+	}
 }
 

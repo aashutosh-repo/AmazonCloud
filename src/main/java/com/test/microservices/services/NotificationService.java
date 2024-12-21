@@ -7,11 +7,14 @@ import java.util.Random;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.test.microservices.entity.Notifications;
+import com.test.microservices.error.NotificationException;
 import com.test.microservices.mapper.ObjectsMapper;
 import com.test.microservices.mapper.RequestMapper;
+import com.test.microservices.services.impl.NotificationInterface;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -23,118 +26,136 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-//@Service
-public class NotificationService{
-	
-	private static final Logger logger = LogManager.getLogger(NotificationService.class);
+public class NotificationService implements NotificationInterface {
+    
+    private static final Logger logger = LogManager.getLogger(NotificationService.class);
 
     private final S3Client s3Client;
     private final ObjectsMapper<Notifications> notificationMapper;
 
     private String bucketName;
-	
-    public NotificationService(S3Client s3Client, ObjectsMapper notificationMapper, String bucketName) {
-		super();
-		this.s3Client = s3Client;
-		this.notificationMapper = notificationMapper;
-		this.bucketName = bucketName;
-	}
+    
+    @Autowired
+    public NotificationService(S3Client s3Client, ObjectsMapper<Notifications> notificationMapper, String bucketName) {
+        this.s3Client = s3Client;
+        this.notificationMapper = notificationMapper;
+        this.bucketName = bucketName;
+    }
 
+    
     public NotificationService(S3Client s3Client, ObjectsMapper notificationMapper) {
         this.s3Client = s3Client;
         this.notificationMapper = notificationMapper;
     }
     
-    public void saveNotification(Notifications notification) throws JsonProcessingException {
-    	//String bucketName = s3BucketConfig.getBucket1Name();  //Uncomment when Multiple Bucket
-    	notification.setNotificationId(generateUniqueKey());
+    @Override
+    public void saveNotification(Notifications notification) {
+        try {
+            notification.setNotificationId(generateUniqueKey());
             String key = "notifications/" + notification.getNotificationId() + ".json";
             String notificationJson = notificationMapper.toJson(notification);
             s3Client.putObject(PutObjectRequest.builder()
-            								.bucket(bucketName)
-            								.key(key).build(),
+                                                .bucket(bucketName)
+                                                .key(key).build(),
                                 RequestBody.fromString(notificationJson));
-           System.out.println("Notification Successfully Saved : " + notification.getNotificationId());
+           // System.out.println("Notification Successfully Saved: " + notification.getNotificationId());
+        } catch (JsonProcessingException e) {
+            //logger.error("Error converting notification to JSON: " + e.getMessage(), e);
+            throw new NotificationException("Error converting notification to JSON");
+        } 
+//            catch (Exception e) {
+//            logger.error("Error saving notification: " + e.getMessage(), e);
+//        }
     }
 
-    
-    public List<Notifications> getActiveNotifications() throws JsonProcessingException {
+    @Override
+    public List<Notifications> getActiveNotifications() {
         List<Notifications> activeNotifications = new ArrayList<>();
+        try {
             List<String> keys = listNotificationKeys();
             for (String key : keys) {
                 String json = s3Client.getObjectAsBytes(GetObjectRequest.builder().bucket(bucketName).key(key).build())
                         .asUtf8String();
                 Notifications notification = notificationMapper.fromJson(json, Notifications.class);
-                if (notification.getIsActive()==1) {
+                if (notification.getIsActive() == 1) {
                     activeNotifications.add(notification);
                 }
             }
+        } catch (JsonProcessingException e) {
+            logger.error("Error processing notifications: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error retrieving active notifications: " + e.getMessage(), e);
+        }
         return activeNotifications;
     }
 
     private List<String> listNotificationKeys() {
-    	List<String> keys = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
         ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder()
                 .bucket(bucketName)
                 .build();
 
         ListObjectsV2Response response;
 
-        do {
-            response = s3Client.listObjectsV2(listObjectsV2Request);
+        try {
+            do {
+                response = s3Client.listObjectsV2(listObjectsV2Request);
 
-            for (S3Object object : response.contents()) {
-                keys.add(object.key());
-            }
+                for (S3Object object : response.contents()) {
+                    keys.add(object.key());
+                }
 
-            listObjectsV2Request = listObjectsV2Request.toBuilder()
-                    .continuationToken(response.nextContinuationToken())
-                    .build();
-        } while (response.isTruncated());
+                listObjectsV2Request = listObjectsV2Request.toBuilder()
+                        .continuationToken(response.nextContinuationToken())
+                        .build();
+            } while (response.isTruncated());
+        } catch (Exception e) {
+            logger.error("Error listing notification keys: " + e.getMessage(), e);
+        }
 
         return keys;
     }
     
-    public void updateSingleNotificationStatus(String notificationId, int isActive) throws JsonProcessingException {
+    @Override
+    public void updateSingleNotificationStatus(String notificationId, int isActive) {
         String key = "notifications/" + notificationId + ".json";
 
-        // Retrieve the notification
-        String json = s3Client.getObjectAsBytes(GetObjectRequest.builder()
-                                                                 .bucket(bucketName)
-                                                                 .key(key)
-                                                                 .build())
-                              .asUtf8String();
-        Notifications notification = notificationMapper.fromJson(json, Notifications.class);
+        try {
+            String json = s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                                                                     .bucket(bucketName)
+                                                                     .key(key)
+                                                                     .build())
+                                  .asUtf8String();
+            Notifications notification = notificationMapper.fromJson(json, Notifications.class);
+            notification.setIsActive(isActive);
 
-        // Update the notification status
-        notification.setIsActive(isActive);
-
-        // Save the updated notification back to S3
-        String updatedNotificationJson = notificationMapper.toJson(notification);
-        s3Client.putObject(PutObjectRequest.builder()
-                                            .bucket(bucketName)
-                                            .key(key)
-                                            .build(),
-                           RequestBody.fromString(updatedNotificationJson));
+            String updatedNotificationJson = notificationMapper.toJson(notification);
+            s3Client.putObject(PutObjectRequest.builder()
+                                                .bucket(bucketName)
+                                                .key(key)
+                                                .build(),
+                               RequestBody.fromString(updatedNotificationJson));
+        } catch (JsonProcessingException e) {
+            logger.error("Error processing notification: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error updating notification status: " + e.getMessage(), e);
+        }
     }
     
-    public void updateNotificationStatuses(List<RequestMapper> notificationIds) throws JsonProcessingException {
-        notificationIds.stream().forEach(notificationId -> {
+    @Override
+    public void updateNotificationStatuses(List<RequestMapper> notificationIds) {
+        notificationIds.forEach(notificationId -> {
             try {
                 String key = "notifications/" + notificationId.getNotificationId() + ".json";
 
-                // Retrieve the notification
                 String json = s3Client.getObjectAsBytes(GetObjectRequest.builder()
                                                                          .bucket(bucketName)
                                                                          .key(key)
                                                                          .build())
                                       .asUtf8String();
                 Notifications notification = notificationMapper.fromJson(json, Notifications.class);
-
-                // Update the notification status
                 notification.setIsActive(notificationId.getActivate());
 
-                // Save the updated notification back to S3
                 String updatedNotificationJson = notificationMapper.toJson(notification);
                 s3Client.putObject(PutObjectRequest.builder()
                                                     .bucket(bucketName)
@@ -142,60 +163,56 @@ public class NotificationService{
                                                     .build(),
                                    RequestBody.fromString(updatedNotificationJson));
             } catch (JsonProcessingException e) {
-                // Handle exception for individual notification
-                e.printStackTrace();
+                logger.error("Error processing notification ID: " + notificationId.getNotificationId() + " - " + e.getMessage(), e);
+            } catch (Exception e) {
+                logger.error("Error updating notification ID: " + notificationId.getNotificationId() + " - " + e.getMessage(), e);
             }
         });
     }
     
+    
+    @Override
     public void deleteNotification(String notificationId) {
-        // Construct the S3 key for the notification
         String key = "notifications/" + notificationId + ".json";
 
         try {
-            // Create the DeleteObjectRequest
             DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-                    .bucket(bucketName)   // You can use s3BucketConfig.getBucket1Name() for multiple buckets
+                    .bucket(bucketName)
                     .key(key)
                     .build();
 
-            // Execute the delete operation on the S3 bucket
             s3Client.deleteObject(deleteObjectRequest);
-            logger.debug("Notification Successfully Deleted : " + notificationId);
+            logger.debug("Notification Successfully Deleted: " + notificationId);
         } catch (NoSuchKeyException e) {
-        	logger.debug("Notification with ID: " + notificationId + " does not exist.");
+            logger.debug("Notification with ID: " + notificationId + " does not exist.");
         } catch (Exception e) {
-            // Handle other exceptions that may occur
-            e.printStackTrace();
+            logger.error("Error occurred while deleting notification: " + notificationId, e);
         }
     }
 
+    @Override
     public void deleteNotifications(List<String> notificationIds) {
         for (String notificationId : notificationIds) {
-            // Construct the S3 key for the notification
             String key = "notifications/" + notificationId + ".json";
 
             try {
-                // Create the DeleteObjectRequest
                 DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-                        .bucket(bucketName)   // You can use s3BucketConfig.getBucket1Name() for multiple buckets
+                        .bucket(bucketName)
                         .key(key)
                         .build();
 
-                // Execute the delete operation on the S3 bucket
                 s3Client.deleteObject(deleteObjectRequest);
-                logger.debug("Notification Successfully Deleted : " + notificationId);
+                logger.debug("Notification Successfully Deleted: " + notificationId);
             } catch (NoSuchKeyException e) {
                 logger.debug("Notification with ID: " + notificationId + " does not exist.");
             } catch (Exception e) {
-                // Handle other exceptions that may occur
                 logger.error("Error occurred while deleting notification: " + notificationId, e);
             }
         }
     }
     
     public static String generateUniqueKey() {
-    	Random RANDOM = new Random();
+        Random RANDOM = new Random();
         long timestamp = Instant.now().toEpochMilli();
         int randomPart = RANDOM.nextInt(10000); // Adjust the range as needed
         return String.format("%d-%04d", timestamp, randomPart);

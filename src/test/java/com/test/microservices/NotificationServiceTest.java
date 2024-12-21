@@ -3,6 +3,7 @@ package com.test.microservices;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -16,12 +17,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.test.microservices.entity.Notifications;
-import com.test.microservices.mapper.NotificationMapper;
+import com.test.microservices.mapper.ObjectsMapper;
 import com.test.microservices.mapper.RequestMapper;
 import com.test.microservices.services.NotificationService;
 
@@ -43,7 +43,7 @@ public class NotificationServiceTest {
     private S3Client s3Client;
 
     @Mock
-    private NotificationMapper notificationMapper;
+    private ObjectsMapper<Notifications> notificationMapper;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -89,7 +89,7 @@ public class NotificationServiceTest {
         ResponseBytes<GetObjectResponse> responseBytes = ResponseBytes.fromByteArray(mock(GetObjectResponse.class), notificationJson.getBytes());
 
         when(s3Client.getObjectAsBytes(any(GetObjectRequest.class))).thenReturn(responseBytes);
-        when(notificationMapper.fromJson(anyString())).thenReturn(notification);
+        when(notificationMapper.fromJson(anyString(), eq(Notifications.class))).thenReturn(notification);
 
         List<Notifications> activeNotifications = notificationService.getActiveNotifications();
 
@@ -104,7 +104,7 @@ public class NotificationServiceTest {
         ResponseBytes<GetObjectResponse> responseBytes = ResponseBytes.fromByteArray(mock(GetObjectResponse.class), notificationJson.getBytes());
 
         when(s3Client.getObjectAsBytes(any(GetObjectRequest.class))).thenReturn(responseBytes);
-        when(notificationMapper.fromJson(anyString())).thenReturn(notification);
+        when(notificationMapper.fromJson(anyString(),eq(Notifications.class))).thenReturn(notification);
         when(notificationMapper.toJson(any(Notifications.class))).thenReturn("{ \"notificationId\": \"1234\", \"isActive\": 1 }");
 
         notificationService.updateSingleNotificationStatus("1234", 1);
@@ -125,7 +125,7 @@ public class NotificationServiceTest {
         ResponseBytes<GetObjectResponse> responseBytes = ResponseBytes.fromByteArray(mock(GetObjectResponse.class), notificationJson.getBytes());
 
         when(s3Client.getObjectAsBytes(any(GetObjectRequest.class))).thenReturn(responseBytes);
-        when(notificationMapper.fromJson(anyString())).thenReturn(notification);
+        when(notificationMapper.fromJson(anyString(),eq(Notifications.class))).thenReturn(notification);
         when(notificationMapper.toJson(any(Notifications.class))).thenReturn("{ \"notificationId\": \"1234\", \"isActive\": 1 }");
 
         notificationService.updateNotificationStatuses(requestMappers);

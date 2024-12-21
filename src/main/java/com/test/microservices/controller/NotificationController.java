@@ -1,8 +1,6 @@
 package com.test.microservices.controller;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,31 +16,46 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.test.microservices.entity.Notifications;
+import com.test.microservices.error.NotificationException;
 import com.test.microservices.mapper.RequestMapper;
 import com.test.microservices.services.NotificationService;
 import com.test.microservices.services.NotificationServiceImpl;
+import com.test.microservices.services.impl.NotificationInterface;
 
 @RestController
 @RequestMapping("/notifications")
 public class NotificationController {
     private final NotificationService notificationService;
-    @Autowired
-    private NotificationServiceImpl servImpl;
+    
+    public NotificationController(NotificationService notificationService,
+			NotificationInterface notificationInterface) {
+		super();
+		this.notificationService = notificationService;
+	}
 
-    public NotificationController(NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
-
-    @PostMapping("/save")
-    public ResponseEntity<String> saveNotification(@RequestBody Notifications notification) throws JsonProcessingException {
-        notificationService.saveNotification(notification);
-        return new ResponseEntity<>("Notification saved", HttpStatus.CREATED);
+	@PostMapping("/save")
+    public ResponseEntity<String> saveNotification(@RequestBody Notifications notification) {
+    	try {
+            notificationService.saveNotification(notification);
+            return new ResponseEntity<>("Notification saved", HttpStatus.CREATED);
+        } catch (NotificationException ex) {
+            // Handle the exception and return appropriate response
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<Notifications>> getActiveNotifications() throws JsonProcessingException {
-        List<Notifications> activeNotifications = notificationService.getActiveNotifications();
-        return new ResponseEntity<>(activeNotifications, HttpStatus.OK);
+    public ResponseEntity<?> getActiveNotifications() throws JsonProcessingException {
+//        List<Notifications> activeNotifications = notificationInterface.getActiveNotifications();
+//        return new ResponseEntity<>(activeNotifications, HttpStatus.OK);
+    	try {
+            List<?> activeNotifications = notificationService.getActiveNotifications();
+            return new ResponseEntity<>(activeNotifications, HttpStatus.OK);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("An error occurred while fetching notifications.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        
+        
     }
     @PutMapping("/updateOne")
     public ResponseEntity<String> updateSingleNotification(@RequestParam String NotificationId,int activeFlag) throws JsonProcessingException{
